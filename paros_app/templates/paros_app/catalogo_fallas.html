@@ -1,0 +1,51 @@
+{% extends 'menu_app/base_menu.html' %}
+{% block title %}Catálogo — {{ area.nombre }}{% endblock %}
+
+{% block content %}
+<div class="card-header" style="margin-bottom:16px;">
+    <div>
+        <div class="card-title">Catálogo de fallas — {{ area.nombre }}</div>
+        <div class="card-subtitle">{{ fallas.count }} falla{{ fallas.count|pluralize }} registrada{{ fallas.count|pluralize }}</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+        <a href="{% url 'importar_fallas' %}" class="btn btn-primary btn-sm">↑ Importar más</a>
+        <a href="{% url 'lista_paros_por_area' area.id %}" class="btn btn-ghost btn-sm">← Paros del área</a>
+    </div>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden;">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:140px;">Código</th>
+                    <th>Falla</th>
+                    <th style="width:90px;">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in fallas %}
+                <tr>
+                    <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--indigo);">{{ f.codigo }}</td>
+                    <td style="font-weight:500;">{{ f.nombre }}</td>
+                    <td>
+                        <form method="post" action="{% url 'eliminar_falla' f.id %}"
+                              onsubmit="return confirm('¿Eliminar falla {{ f.codigo }}?')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align:center;padding:40px;color:var(--text-3);">
+                        No hay fallas en el catálogo de este área.
+                        <a href="{% url 'importar_fallas' %}" style="color:var(--indigo);">Importar ahora</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

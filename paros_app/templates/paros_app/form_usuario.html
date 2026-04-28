@@ -1,0 +1,181 @@
+{% extends 'menu_app/base_menu.html' %}
+{% block extra_css %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'paros_app/css/paros.css' %}">
+{% endblock %}
+
+{% block title %}{{ accion }} usuario{% endblock %}
+{% block content %}
+<div style="max-width:780px;">
+
+    <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+            <div class="card-title">{{ accion }} usuario{% if usuario %}: <span style="color:var(--indigo);">{{ usuario.username }}</span>{% endif %}</div>
+            <div class="card-subtitle">Configura los datos de acceso y permisos del usuario</div>
+        </div>
+        <a href="{% url 'lista_usuarios' %}" class="btn btn-ghost btn-sm">← Volver</a>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <!-- ── Datos básicos ── -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="font-weight:600; font-size:14px; margin-bottom:16px; color:var(--text);">
+                Datos del usuario
+            </div>
+            <div class="form-grid">
+
+                <div class="form-field">
+                    <label>Usuario <span style="color:var(--red)">*</span></label>
+                    {% if usuario %}
+                        <input type="text" value="{{ usuario.username }}" disabled
+                               style="background:var(--surface); color:var(--text-3);">
+                    {% else %}
+                        <input type="text" name="username"
+                               value="{{ post.username|default:'' }}" required
+                               placeholder="ej. jperez">
+                    {% endif %}
+                </div>
+
+                <div class="form-field">
+                    <label>Correo electrónico</label>
+                    <input type="email" name="email"
+                           value="{% if usuario %}{{ usuario.email }}{% endif %}"
+                           placeholder="correo@empresa.com">
+                </div>
+
+                <div class="form-field">
+                    <label>Nombre <span style="color:var(--red)">*</span></label>
+                    <input type="text" name="first_name" required
+                           value="{% if usuario %}{{ usuario.first_name }}{% endif %}">
+                </div>
+
+                <div class="form-field">
+                    <label>Apellido <span style="color:var(--red)">*</span></label>
+                    <input type="text" name="last_name" required
+                           value="{% if usuario %}{{ usuario.last_name }}{% endif %}">
+                </div>
+
+                <div class="form-field">
+                    <label>
+                        Contraseña
+                        {% if usuario %}
+                            <span style="color:var(--text-3); font-weight:400; font-size:11px;">
+                                (dejar vacío para no cambiar)
+                            </span>
+                        {% else %}
+                            <span style="color:var(--red)">*</span>
+                        {% endif %}
+                    </label>
+                    <input type="password" name="password"
+                           {% if not usuario %}required{% endif %}
+                           placeholder="{% if usuario %}••••••••{% else %}Mínimo 8 caracteres{% endif %}">
+                </div>
+
+                <div class="form-field">
+                    <label>Confirmar contraseña</label>
+                    <input type="password" name="password2" placeholder="Repite la contraseña">
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── Rol ── -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="font-weight:600; font-size:14px; margin-bottom:14px; color:var(--text);">Rol</div>
+            <label class="perm-row" style="max-width:420px;">
+                <input type="checkbox" name="es_admin"
+                       {% if perfil.es_admin %}checked{% endif %}
+                       style="width:16px; height:16px; accent-color:var(--indigo); flex-shrink:0;">
+                <div>
+                    <div style="font-weight:600; font-size:13px;">Administrador</div>
+                    <div style="font-size:12px; color:var(--text-3);">
+                        Acceso total al sistema: puede gestionar usuarios y todos los módulos sin restricciones
+                    </div>
+                </div>
+            </label>
+        </div>
+
+        <!-- ── Permisos de dashboard ── -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="font-weight:600; font-size:14px; margin-bottom:6px; color:var(--text);">Permisos — Dashboard</div>
+            <div style="font-size:12px; color:var(--text-3); margin-bottom:14px;">
+                Controla si el usuario puede ver los indicadores y gráficas.
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                {% for campo, label, desc, marcado in permisos_dashboard %}
+                <label class="perm-row">
+                    <input type="checkbox" name="{{ campo }}"
+                           {% if marcado %}checked{% endif %}
+                           style="width:15px; height:15px; accent-color:var(--indigo); flex-shrink:0;">
+                    <div>
+                        <div style="font-size:13px; font-weight:500;">{{ label }}</div>
+                        <div style="font-size:11px; color:var(--text-3);">{{ desc }}</div>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ── Permisos de paros ── -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="font-weight:600; font-size:14px; margin-bottom:6px; color:var(--text);">Permisos — Paros</div>
+            <div style="font-size:12px; color:var(--text-3); margin-bottom:14px;">
+                Si el usuario es Admin estos permisos se ignoran y tiene acceso total.
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                {% for campo, label, desc, marcado in permisos_paros %}
+                <label class="perm-row">
+                    <input type="checkbox" name="{{ campo }}"
+                           {% if marcado %}checked{% endif %}
+                           style="width:15px; height:15px; accent-color:var(--indigo); flex-shrink:0;">
+                    <div>
+                        <div style="font-size:13px; font-weight:500;">{{ label }}</div>
+                        <div style="font-size:11px; color:var(--text-3);">{{ desc }}</div>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- ── Permisos de catálogos ── -->
+        <div class="card" style="margin-bottom:16px;">
+            <div style="font-weight:600; font-size:14px; margin-bottom:6px; color:var(--text);">Permisos — Catálogos</div>
+            <div style="font-size:12px; color:var(--text-3); margin-bottom:14px;">
+                Controla qué catálogos puede ver, importar y limpiar este usuario.
+            </div>
+            {% for grupo in permisos_catalogos_grupos %}
+            <div style="margin-bottom:10px;">
+                <div style="font-size:10px; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+                            color:var(--text-3); margin-bottom:6px; padding-left:2px;">
+                    {{ grupo.nombre }}
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                    {% for campo, label, desc, marcado in grupo.permisos %}
+                    <label class="perm-row">
+                        <input type="checkbox" name="{{ campo }}"
+                               {% if marcado %}checked{% endif %}
+                               style="width:15px; height:15px; accent-color:var(--indigo); flex-shrink:0;">
+                        <div>
+                            <div style="font-size:13px; font-weight:500;">{{ label }}</div>
+                            <div style="font-size:11px; color:var(--text-3);">{{ desc }}</div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                {% if accion == 'Crear' %}Crear usuario{% else %}Guardar cambios{% endif %}
+            </button>
+            <a href="{% url 'lista_usuarios' %}" class="btn btn-ghost">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

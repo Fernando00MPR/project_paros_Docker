@@ -1,0 +1,108 @@
+{% extends 'menu_app/base_menu.html' %}
+{% block title %}Gestión de usuarios{% endblock %}
+{% block content %}
+
+<div class="card-header" style="margin-bottom:16px;">
+    <div>
+        <div class="card-title">Gestión de usuarios</div>
+        <div class="card-subtitle">{{ usuarios.count }} usuario{{ usuarios.count|pluralize }} registrado{{ usuarios.count|pluralize }}</div>
+    </div>
+    <a href="{% url 'crear_usuario' %}" class="btn btn-primary">+ Nuevo usuario</a>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:140px;">Usuario</th>
+                    <th style="width:160px;">Nombre completo</th>
+                    <th style="width:130px;">Rol</th>
+                    <th>Permisos de paros</th>
+                    <th>Catálogos</th>
+                    <th style="width:180px;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr>
+                    <td style="font-weight:600; font-family:'DM Mono',monospace; font-size:13px;">
+                        {{ u.username }}
+                        {% if u == request.user %}
+                        <span style="font-size:10px; color:var(--text-3); font-family:'DM Sans',sans-serif;">(tú)</span>
+                        {% endif %}
+                    </td>
+                    <td style="color:var(--text-2);">{{ u.get_full_name|default:"—" }}</td>
+                    <td>
+                        {% if u.is_superuser %}
+                            <span class="badge" style="background:#FEF3C7;color:#92400E;">Super</span>
+                        {% elif u.perfil.es_admin %}
+                            <span class="badge badge-t1">Admin</span>
+                        {% else %}
+                            <span class="badge" style="background:var(--surface);color:var(--text-3);border:1px solid var(--border);">Operador</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-size:12px;">
+                        {% if u.is_superuser or u.perfil.es_admin %}
+                            <span style="color:var(--green);">Acceso total</span>
+                        {% elif u.perfil %}
+                            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                                {% if u.perfil.ver_paros %}<span class="perm-tag">Ver</span>{% endif %}
+                                {% if u.perfil.crear_paro %}<span class="perm-tag">Crear</span>{% endif %}
+                                {% if u.perfil.editar_paro %}<span class="perm-tag">Editar</span>{% endif %}
+                                {% if u.perfil.eliminar_paro %}<span class="perm-tag perm-red">Eliminar</span>{% endif %}
+                            </div>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td style="font-size:12px;">
+                        {% if u.is_superuser or u.perfil.es_admin %}
+                            <span style="color:var(--green);">Todos</span>
+                        {% elif u.perfil %}
+                            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+                                {% if u.perfil.ver_catalogo_fallas %}<span class="perm-tag">Fallas</span>{% endif %}
+                                {% if u.perfil.ver_catalogo_equipos %}<span class="perm-tag">Equipos</span>{% endif %}
+                                {% if u.perfil.ver_catalogo_responsables %}<span class="perm-tag">Responsables</span>{% endif %}
+                            </div>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:6px;">
+                            <a href="{% url 'editar_usuario' u.id %}" class="btn btn-ghost btn-sm">Editar</a>
+                            {% if u != request.user %}
+                            <form method="post" action="{% url 'eliminar_usuario' u.id %}"
+                                  onsubmit="return confirm('¿Eliminar al usuario {{ u.username }}? Esta acción no se puede deshacer.')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align:center; padding:40px; color:var(--text-3);">
+                        No hay usuarios registrados.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.perm-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--indigo-lt);
+    color: var(--indigo);
+}
+.perm-tag.perm-red {
+    background: var(--red-lt);
+    color: var(--red);
+}
+</style>
+{% endblock %}

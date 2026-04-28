@@ -1,0 +1,128 @@
+{% extends 'menu_app/base_menu.html' %}
+{% block title %}Importar catálogo de fallas{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;">
+
+    <div style="margin-bottom:20px;">
+        <div class="card-title">Importar catálogo de fallas</div>
+        <div class="card-subtitle">
+            Sube un archivo Excel (.xlsx) o CSV con columnas: <strong>codigo · nombre · descripcion</strong>
+        </div>
+    </div>
+
+    {% if resumen %}
+    <div class="card" style="border-left:4px solid var(--green); padding:16px 20px; margin-bottom:20px;">
+        <div style="font-weight:600; color:var(--green); margin-bottom:8px;">✓ Importación completada — {{ resumen.area }}</div>
+        <div style="font-size:13px; color:var(--text-2); display:flex; gap:24px;">
+            <span><strong style="color:var(--text);">{{ resumen.creados }}</strong> fallas nuevas</span>
+            <span><strong style="color:var(--text);">{{ resumen.omitidos }}</strong> actualizadas</span>
+            <span><strong style="color:var(--text);">{{ resumen.total }}</strong> total procesadas</span>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if errores %}
+    <div class="card" style="border-left:4px solid var(--red); padding:16px 20px; margin-bottom:20px;">
+        <div style="font-weight:600; color:var(--red); margin-bottom:8px;">Errores encontrados</div>
+        <ul style="font-size:13px; color:var(--text-2); padding-left:16px;">
+            {% for e in errores %}<li>{{ e }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <div class="card">
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            <div class="form-grid">
+
+                <div class="form-field">
+                    <label for="area_id">Área <span style="color:var(--red)">*</span></label>
+                    <select name="area_id" id="area_id" required>
+                        <option value="">— Selecciona un área —</option>
+                        {% for area in areas %}
+                        <option value="{{ area.id }}">{{ area.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <span class="help">Las fallas quedarán asociadas a esta área</span>
+                </div>
+
+                <div class="form-field">
+                    <label for="modo">¿Qué hacer con fallas existentes?</label>
+                    <select name="modo" id="modo">
+                        <option value="agregar">Agregar / actualizar (recomendado)</option>
+                        <option value="reemplazar">Reemplazar todo el catálogo del área</option>
+                    </select>
+                    <span class="help">
+                        "Agregar" actualiza por código sin borrar las demás.
+                        "Reemplazar" borra todo el catálogo del área primero.
+                    </span>
+                </div>
+
+                <div class="form-field full">
+                    <label for="archivo">Archivo Excel o CSV <span style="color:var(--red)">*</span></label>
+                    <input type="file" name="archivo" id="archivo"
+                           accept=".xlsx,.xls,.csv" required
+                           style="padding:8px; cursor:pointer;">
+                    <span class="help">
+                        La primera fila debe ser el encabezado:
+                        <code style="background:var(--surface);padding:2px 6px;border-radius:4px;font-size:11px;">codigo | nombre | descripcion</code>
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Importar</button>
+                <a href="{% url 'lista_paros' %}" class="btn btn-ghost">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Plantilla de descarga -->
+    <div class="card" style="padding:16px 20px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:8px; color:var(--text);">
+            Formato esperado del archivo
+        </div>
+        <table style="font-size:12px; width:100%; border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="background:var(--surface);padding:6px 10px;border:1px solid var(--border);color:var(--text-3);text-align:left;">codigo</th>
+                    <th style="background:var(--surface);padding:6px 10px;border:1px solid var(--border);color:var(--text-3);text-align:left;">nombre</th>
+                    <th style="background:var(--surface);padding:6px 10px;border:1px solid var(--border);color:var(--text-3);text-align:left;">descripcion</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="padding:6px 10px;border:1px solid var(--border);color:var(--text-2);">F-001</td>
+                    <td style="padding:6px 10px;border:1px solid var(--border);color:var(--text-2);">Falla mecánica</td>
+                    <td style="padding:6px 10px;border:1px solid var(--border);color:var(--text-2);">Fallo en componentes mecánicos</td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 10px;border:1px solid var(--border);color:var(--text-2);">F-002</td>
+                    <td style="padding:6px 10px;border:1px solid var(--border);color:var(--text-2);">Falla eléctrica</td>
+                    <td style="padding:6px 10px;border:1px solid var(--border);color:var(--text-2);">Corte de energía o cortocircuito</td>
+                </tr>
+            </tbody>
+        </table>
+        <div style="margin-top:12px;">
+            <a href="{% url 'descargar_plantilla_fallas' %}" class="btn btn-ghost btn-sm">↓ Descargar plantilla CSV</a>
+        </div>
+    </div>
+
+    <!-- Acceso rápido a catálogos por área -->
+    <div class="card" style="padding:16px 20px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:12px; color:var(--text);">
+            Ver catálogo por área
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            {% for area in areas %}
+            <a href="{% url 'catalogo_fallas' area.id %}" class="btn btn-ghost btn-sm">
+                {{ area.nombre }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
