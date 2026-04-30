@@ -1,12 +1,9 @@
-version: '3.9'
-
 services:
 
   # ── Base de datos PostgreSQL ─────────────────────────────────────────────────
   db:
     image: postgres:15-alpine
-    container_name: paros_db
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -14,9 +11,10 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - paros_postgres_data:/var/lib/postgresql/data
+    # ✅ Sin exposición de puertos: la DB solo es accesible dentro de la red Docker
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 10s
@@ -26,8 +24,7 @@ services:
   # ── Aplicación Django ────────────────────────────────────────────────────────
   web:
     build: .
-    container_name: paros_web
-    restart: always
+    restart: unless-stopped
     env_file:
       - .env
     command: >
@@ -35,14 +32,29 @@ services:
              python manage.py collectstatic --noinput &&
              gunicorn paros_project.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     volumes:
-      - .:/app
-      - static_volume:/app/staticfiles
-    ports:
-      - "8000:8000"
+      # ✅ Sin montaje de código local (./:/app) — el código viene del build
+      - paros_static_volume:/app/staticfiles
+    # ✅ Sin exposición directa al host — Nginx es el único punto de entrada
+    expose:
+      - "8000"
     depends_on:
       db:
         condition: service_healthy
 
+  # ── Nginx (proxy reverso + archivos estáticos) ───────────────────────────────
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      # ✅ Solo Nginx expone puerto al exterior
+      - "8080:80"
+    volumes:
+      - paros_static_volume:/app/staticfiles
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+
+# ✅ Nombres únicos de volúmenes para evitar colisiones entre proyectos
 volumes:
-  postgres_data:
-  static_volume:
+  paros_postgres_data:
+  paros_static_volume:
