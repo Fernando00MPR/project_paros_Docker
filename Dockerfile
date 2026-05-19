@@ -1,5 +1,5 @@
 # ── Imagen base ───────────────────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # Evita archivos .pyc y buffers en stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1
